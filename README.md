@@ -332,7 +332,7 @@ await cryptoPoller.stopPollingForShift(shiftId);
 ### Webhook Manager (Checkout Integration Only)
 
 ```javascript
-// Setup the webhook (this will run it once and store data into `webhook-status.json` to avoid setting multiple at server restart)
+// Setup the webhook (this will run it once and store data into `webhook-status.` to avoid setting multiple at server restart)
 function startWebhook() {
     try {
         shiftProcessor.setupSideShiftWebhook(WEBSITE_URL, process.env.SIDESHIFT_SECRET);
@@ -474,7 +474,7 @@ const data = await shiftProcessor.getSettlementData(Number(totalFiat), depositCo
 ```
 
 Return
-```json
+```javascript
 {
   settleData: { // Your destination wallet information
     coin: 'USDT',
@@ -586,7 +586,7 @@ const shift = await shiftProcessor.createCryptocurrencyPayment({depositCoin, dep
 ```
 
 return
-```json
+```javascript
 {
   id: '8c9ba87d02a801a2f254',
   createdAt: '2025-09-25T22:20:54.256Z',
@@ -752,7 +752,7 @@ Parameter
 destination: The file path or destination where coin icons should be downloaded (e.g., "/icons/")
 
 return
-```json
+```javascript
 { availableCoins: [availableCoins], lastCoinList: [lastCoinList], rawCoinList: {rawCoinList}, networkExplorerLinks: {networkLinks} }
 ```
 availableCoins: Complete list of available coin-network ([['COIN-network', false], ['COIN-network', "Memo"], ...])
@@ -888,11 +888,11 @@ shiftProcessor.validateNumber(input)
 Check the online status for deposit and settle coin-network.
 
 return object with Boolean
-```json
+```javascript
 { isDepositOffline: false, isSettleOffline: false, isShiftOnline: true };
 ```
 or
-```json
+```javascript
 { isDepositOffline: false, isSettleOffline: true, isShiftOnline: false };
 ```
 isShiftOnline indicate if both deposit and settle are online.
@@ -902,7 +902,7 @@ isShiftOnline indicate if both deposit and settle are online.
 Organize networks, coins and tokens into categorized lists.
 
 Return an object with supportedNetworks, mainnetCoins and tokenByChain
-```json
+```javascript
 { 
     supportedNetworks: supportedNetworksArray,
     mainnetCoins: mainnetCoinsArray,
