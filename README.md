@@ -1,4 +1,4 @@
-# sideshift-api-payment-toolkit Node.js
+# sideshift-payment-toolkit Node.js
 
 This Node.js library **Simplifies cryptocurrency payment integration** for developers who want to accept crypto payments without building complex blockchain infrastructure.
 
@@ -10,13 +10,14 @@ This library handles both integration methods:
 - Custom integration
 - [SideShift Pay](https://pay.sideshift.ai/) Checkout integration
 
-
-
 **Features**
+- Full TypeScript support
 - Real-time payment processing
 - 250+ cryptocurrency support
 - Multi-currency (USD, EUR, JPY)
-- Two integration methods
+- Two integration methods:
+  - Custom integration
+  - SideShift Pay Checkout integration
 - High-level API interface
 
 **Key Capabilities**
@@ -34,8 +35,18 @@ This library handles both integration methods:
 
 ## Table of Contents
 - [Description](#description)
+  - [Integration Methods][#integration-methods]
+    -[Custom Integration](#custom-integration)
+    -[Checkout Integration](#checkout-integration)
+  - [Components](#components)
 - [Installation](#installation)
 - [Configuration](#configuration)
+  - [API Credentials](#api-credentials)
+  - [Payment Settings](#payment-settings)
+  - [Wallet Configuration](#wallet-configuration)
+  - [Load Crypto Payment Processor](#load-crypto-payment-processor)
+  - [Load Payment Poller System](#load-payment-poller-system)
+  - [Initialization](#initialization)
 - [Usage](#usage)
 - [Checkout Integration Guide](#checkout-integration-guide)
   - [Webhook Manager](#webhook-manager)
@@ -59,14 +70,56 @@ It supports:
 - IP address parsing
 - SVG icon downloading
 - Full API endpoint access
-- More
+- And more...
+
+
+### Integration Methods
+
+#### Custom Integration
+Full control implementation where your server handles all processing logic.
+
+**Characteristics:**
+- Server-side processing: All transaction handling occurs on your website's server
+- Direct API calls: Your server makes direct requests to SideShift API endpoints
+- Complete control: You manage the entire flow from start to finish
+- Real-time tracking: Your system monitors transaction status continuously
+- Custom logic: You can implement your own business rules and validation
+
+
+#### Checkout Integration
+Simplified implementation using SideShift's hosted checkout page.
+
+**Characteristics:**
+- Hosted solution: SideShift handles the entire checkout experience
+- Single API call: Request a checkout link and redirect users
+- Platform management: SideShift manages transaction lifecycle
+- Automatic redirects: Users are automatically sent to success/cancel pages
+- Reduced server load: Minimal server-side processing required
+- Webhook confirmation: SideShift will send success status using a webhook
+
+
+#### Key Differences
+
+| Aspect | Custom Integration | Checkout Integration |
+|--------|-------------------|---------------------|
+| **Complexity** | High | Low |
+| **Control** | Full | Limited |
+| **Development Time** | Longer | Shorter |
+| **Maintenance** | Higher | Lower |
+| **User Experience** | Customizable | SideShift Checkout |
+| **Server Requirements** | High | Low |
+| **Error Handling** | Custom | Platform-managed |
+
 
 
 ### Components
-- `ShiftProcessor`: Handles the creation and management of crypto payments via SideShift API.
-- `PaymentPoller`: Polls the SideShift API for payment confirmation and triggers success/failure callbacks.
-- `webhook-manager`: SideShift webhook connection manager
-- `Helpers`: functions to ease shift processing
+| Component | Purpose |
+|-----------|---------|
+| `ShiftProcessor` | Handles creation and management of crypto payments via `sideshift-api`. |
+| `PaymentPoller` | Polls the SideShift API for payment confirmations and triggers success/failure callbacks. |
+| `webhook-manager` | Manages SideShift webhooks. |
+| `Helpers` | Utility functions to ease shift processing and verification. |
+
 
 
 
@@ -75,25 +128,29 @@ It supports:
 ### Prerequisites
 
 SideShift account: Ensure you have an active SideShift account.
-- Account ID: Your unique identifier on SideShift.ai. It can also be used as the affiliateId to receive commissions.
-- Private Key: Your API secret key used for authentication.
-Both can be acquired from https://sideshift.ai/account, you will find them on the dashboard
+- **Account ID**: Your unique identifier on SideShift Website/API. It can also be used as the affiliateId to receive commissions.
+- **Private Key**: Your API secret key used for authentication.
+Both can be acquired from sideshift.ai account page, you will find them on the dashboard
 
-**Detailled explanation:** Navigate to [SideShift.ai](https://sideshift.ai/a/9iuC2qrEj), click on the "Account" option in the top right corner menu, and you will find your SideShift ID and Private Key on the dashboard (if this is your first visit, you will be prompted to save your private key)
+**Detailed explanation:** Navigate to [SideShift.ai](https://sideshift.ai/a/9iuC2qrEj), click on the "Account" option in the top right corner menu, and you will find your SideShift ID and Private Key on the dashboard (if this is your first visit, you will be prompted to save your private key)
 
 
+### Dependencies
+This toolkit requires:
+- `fs` (built-in Node.js module)
+- [sideshift-api](https://github.com/ryo-ohki-code/sideshift-api-node/) SideShift API client.
 
-Else the library only requires the fs and [sideshift-api](https://github.com/ryo-ohki-code/sideshift-api-node/) module to work.
 
+### Toolkit Installation
+Install via npm:
 
 ```bash
-git clone https://github.com/ryo-ohki-code/sideshift-payment-wrapper-node.git
-cd sideshift-payment-wrapper-node/
+npm install sideshift-api-payment-toolkit
 npm install fs sideshift-api
 ```
 
 
-### Demo Server
+### Demo Server Installation
 Sample configurations for demo_integration.js server.
 
 
@@ -105,14 +162,13 @@ WALLET_ADDRESS=0x...
 WEBSITE_URL=https://your-url.com
 ```
 
-
 **Install and Start Demo Server**
 ```bash
 npm install express pug dotenv express-rate-limit fs
 node demo_integration.js
 ```
 
-📝 Note: At first start, it will download and store the coin icons.
+📝 **Note**: At first start, it will download and store the coin icons.
 
 ```javascript
 // Path to store downloaded icons
@@ -120,15 +176,14 @@ const ICON_PATH = './public/icons';
 ```
 
 
+
 ## Configuration
 
 ### API Credentials
 ```javascript
-const SIDESHIFT_ID = process.env.SIDESHIFT_ID; // "Your_sideshift_ID"; 
-const SIDESHIFT_SECRET = process.env.SIDESHIFT_SECRET; //"Your_shideshift_secret";
 const SIDESHIFT_CONFIG = {
-	secret: SIDESHIFT_SECRET,
-	id: SIDESHIFT_ID,
+	secret: process.env.SIDESHIFT_SECRET, // "Your_sideshift_ID"; 
+	id: process.env.SIDESHIFT_ID, //"Your_shideshift_secret";
 	commissionRate: "0.5", // from 0 to 2 %
 	verbose: true
 }
@@ -143,15 +198,15 @@ See "Prerequisites".
 ```javascript
 SHOP_SETTING.currency = "USD"; // Supported currencies: USD, EUR, JPY... (ISO 4217 code standard)
 SHOP_SETTING.USD_REFERENCE_COIN = "USDT-bsc"; // Must be a coin-network from the coinList
+CURRENCY_SETTING.SHIF_LIMIT_USD = 20000; // Max USD amount per shift - This is default do not use unless you have specific account on SideShift with higher limit
 ```
 
 
 ### Wallet Configuration
-Important to know: The current version provides a custom and the latest 'checkout' integration.
 
-The custom integration requires two different wallets because the SideShift API doesn't support same-coin-network shifts (e.g., BTC-bitcoin to BTC-bitcoin). Checkout does not have this restriction.
-
-You can use 'custom integration' by setting only one wallet, but same coin shifts will throw an error. Using 'checkout integration' requires only one wallet setting.
+⚠️ **Why Two Wallets Setting?**
+The SideShift API doesn't support same-coin-network shifts (e.g., BTC-bitcoin to BTC-bitcoin). 
+This is a technical limitation that requires separate wallets for the 'from' and 'to' networks.
 
 ```javascript
 const MAIN_WALLET = {
@@ -182,9 +237,41 @@ const WALLETS = {
 2. You cannot set the same coin-network twice
     - ❌ Invalid: USDT-ethereum and USDT-ethereum
     - ✅ Valid: USDT-ethereum and USDT-bsc
+    - ✅ BTC-bitcoin and ETH-ethereum
+3. You can use only one wallet configuration, but this will require further settings for payment validation.
+
+#### Minimal required setting**:
+
+`Custom integration` can be used with a single wallet. However, same-coin shifts may throw errors or require the main wallet to generate 'internal shift data.' Custom logic must be implemented for each coin/blockchain. **See 'Detailed one wallet setting' for more information.**
+
+`Checkout integration` do not support same coin shift since all payment processing is done on the SideShift side. This is a SideShift API limitation. It is not possible to set two wallet setting with `checkout integration` since coin selection is done on sideshift side.
+
+```
+const WALLETS = {
+    [MAIN_COIN]: MAIN_WALLET
+};
+```
+
+#### Quick Setup Steps
+1. Choose integration type (custom vs checkout)
+2. Configure wallet(s)
+3. Set custom logic for same-coin shifts if using only one wallet (Custom integration only)
+
+#### Integration Type Comparison
+
+| Type | Wallets Needed | Same-Coin Shifts | Complexity |
+|------|---------------|------------------|------------|
+| Custom | 1 | Requires custom logic | High |
+| Custom | 2 | No custom logic | Medium |
+| Checkout | 1 | Not supported | Low |
+
+Important to know:
+- **Without wallet**: Only minimal toolkit functionality will be available.
+- **One wallet**: Single wallet with custom logic per coin/blockchain
+- **Two wallet**: Two separate wallets required (due to SideShift API limitations for same coin shift)
 
 
-### Load the crypto payment processor
+### Load Crypto Payment Processor
 ```javascript
 const ShiftProcessor = require('./ShiftProcessor.js')
 const shiftProcessor = new ShiftProcessor({
@@ -194,7 +281,7 @@ const shiftProcessor = new ShiftProcessor({
 });
 ```
 
-If you don't want to use a wallet, you can load the module without wallet settings. Without wallet settings, all wallet-related functions will be unavailable:
+**Without wallet settings, all wallet-related functions will be disabled**. To use wallet features, enable wallet settings in the module configuration.:
 
 ```javascript
 const ShiftProcessor = require('./ShiftProcessor.js')
@@ -204,20 +291,68 @@ const shiftProcessor = new ShiftProcessor({
 ```
 
 
-### Load the payment poller system
-The custom integration requires the polling system.
-
-Do not use for checkout integration.
+### Load Payment Poller System (Custom Integration Only)
+Important: Only custom integration requires the polling system. Do not use for checkout integration.
 
 ```javascript
-const PaymentPoller = require('./CryptoPaymentPoller.js');
-const cryptoPoller = new PaymentPoller({
-  shiftProcessor,
-  intervalTimeout: 120000, // optinal default to 30000 ms
-  resetCryptoPayment,
-  confirmCryptoPayment
-});
+const POLLING_CONFIG = {
+        active: true, // Polling System active status - default false
+        intervalTimeout: 10000, // Interval ms between 2 API call - default 20000
+        resetCryptoPayment: "cancelCryptoPayment", // Failure callbacks function method name
+        confirmCryptoPayment: "confirmCryptoPayment" // Success callbacks function method name
+};
+
+// Initiate Polling System
+const cryptoPoller = shiftProcessor.cryptoPollerInit(POLLING_CONFIG);
 ```
+
+Start polling:
+```javascript
+cryptoPoller.addPayment({ shift, settleAddress: shift.settleAddress, settleAmount: shift.settleAmount, customId: id });
+```
+
+Start polling with single wallet setting:
+```
+const isInternal = isInternalId(shift.id); // You must use this with single wallet setting to detect 'forged internal shift'
+cryptoPoller.addPayment({ shift, settleAddress: shift.settleAddress, settleAmount: shift.settleAmount, customId: id, isInternal });
+
+```
+
+Get polling data for a shift:
+```javascript
+const results = await cryptoPoller.getPollingShiftData(shiftId);
+```
+
+Stop polling for a shift:
+```javascript
+await cryptoPoller.stopPollingForShift(shiftId);
+```
+
+
+### Webhook Manager (Checkout Integration Only)
+
+```javascript
+// Setup the webhook (this will run it once and store data into `webhook-status.json` to avoid setting multiple at server restart)
+function startWebhook() {
+    try {
+        shiftProcessor.setupSideShiftWebhook(WEBSITE_URL, process.env.SIDESHIFT_SECRET);
+    } catch (error) {
+        console.log(error);
+    }
+}
+startWebhook();
+
+// To delete a webhook
+function deleteWebhook() {
+    try {
+        shiftProcessor.deleteWebhook(process.env.SIDESHIFT_SECRET);
+    } catch (error) {
+        console.log(error);
+    }
+}
+// deleteWebhook();
+```
+
 
 
 ### Initialization
@@ -313,12 +448,12 @@ Checkout must be used with the webhook notification system. The webhook-manager 
 
 Create a webhook:
 ```javascript
-setupSideShiftWebhook(WEBSITE_URL, process.env.SIDESHIFT_SECRET); //will set the webhook once and save the response into a file.
+shiftProcessor.setupSideShiftWebhook(WEBSITE_URL, process.env.SIDESHIFT_SECRET); //will set the webhook once and save the response into a file.
 ```
 
 Delete a webhook:
 ```javascript
-setupSideShiftWebhook(process.env.SIDESHIFT_SECRET); // Delete the saved webhook
+shiftProcessor.setupSideShiftWebhook(process.env.SIDESHIFT_SECRET); // Delete the saved webhook
 ```
 
 
@@ -783,3 +918,9 @@ Generate explorer link for a given network (e.g., Ethereum).
 ```
 https://3xpl.com/{network}/address/
 ```
+
+
+
+# Licence
+
+MIT

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" version="1.1" viewBox="0 0 1200 1200">
+  <!-- Generator: Adobe Illustrator 29.5.1, SVG Export Plug-In . SVG Version: 2.1.0 Build 141)  -->
+  <g id="Logo">
+    <g id="Icon">
+      <rect x="259.3" y="260.1" width="743" height="672.8" fill="#fff"/>
+      <rect x="435" y="557.9" width="330" height="84.3" fill="#222"/>
+      <path d="M600,13.5C276.1,13.5,13.5,276.1,13.5,600s262.6,586.5,586.5,586.5,586.5-262.6,586.5-586.5S923.9,13.5,600,13.5ZM842.3,863.4h-77.3v-165.1h-330.1c0-.1,0,165.1,0,165.1h-77.3V336.6h77.3v165.1h0c0,0,330,0,330,0v-165.1h77.3v526.8h0Z" fill="#222"/>
+    </g>
+  </g>
+</svg>
