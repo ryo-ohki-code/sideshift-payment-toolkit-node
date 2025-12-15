@@ -34,13 +34,21 @@ interface oneWalletSupport {
     internalPrefix: string;
 }
 
-import { QuoteData, FixedShiftData, VariableShiftData, CheckoutData, PairData, ShiftData } from './types/shifts';
+import { QuoteData, FixedShiftData, VariableShiftData, CheckoutData, PairData } from './types/shifts';
+import { SuccessPaymentFunction, CancelPaymentFunction } from './CryptoPaymentPoller'
 
+interface PollingConfig {
+    active: boolean;
+    intervalTimeout?: number;
+    cancelFunction: CancelPaymentFunction;
+    successFunction: SuccessPaymentFunction;
+}
 
 import fs from 'fs';
-import { Helpers } from './utils/helpers';
 import SideshiftAPI from 'sideshift-api';
-import { _setupSideShiftWebhook, _deleteWebhook } from './utils/sideshift-webhook';
+
+import { Helpers } from './utils/helpers';
+import { _setupSideShiftWebhook, _deleteWebhook, _getWebhookId } from './utils/sideshift-webhook';
 import PaymentPoller from './CryptoPaymentPoller';
 
 
@@ -68,7 +76,6 @@ class ShiftProcessor {
     private internalPrefix: string;
     private oneWalletSupport: boolean;
 
-
     constructor({
         wallets = {},
         sideshiftConfig,
@@ -83,7 +90,6 @@ class ShiftProcessor {
     }) {
         // Initialize Sideshift API
         try {
-            // const SideshiftAPI = require(sideshiftConfig.path);
             this.sideshift = new SideshiftAPI({
                 secret: sideshiftConfig.secret,
                 id: sideshiftConfig.id,
@@ -117,8 +123,8 @@ class ShiftProcessor {
         this.stableCoinList = null;
         this.networkLinks = {};
 
+        // Wallets configuration
         this.WALLETS = wallets;
-
         this.MAIN_COIN = Object.keys(this.WALLETS)[0] || "no_wallet";
         this.SECONDARY_COIN = Object.keys(this.WALLETS)[1] || "no_wallet";
         this.CURRENCY_SETTING = currencySetting;
@@ -137,23 +143,24 @@ class ShiftProcessor {
 
     cryptoPollerInit({
         active = false,
-        intervalTimeout = 20000,
-        resetCryptoPayment = "resetCryptoPayment",
-        confirmCryptoPayment = "confirmCryptoPayment"
-    }) {
+        intervalTimeout = 30000,
+        cancelFunction,
+        successFunction
+    }: PollingConfig): PaymentPoller | null  {
         if (!this.cryptoPoller) {
             if (active === true) {
                 // Initialize poller
                 this.cryptoPoller = new PaymentPoller({
                     shiftProcessor: { verbose: this.verbose, sideshift: this.sideshift },
                     intervalTimeout: intervalTimeout,
-                    resetCryptoPayment: resetCryptoPayment,
-                    confirmCryptoPayment: confirmCryptoPayment
+                    cancelCryptoPayment: cancelFunction,
+                    confirmCryptoPayment: successFunction
                 });
 
             }
             return this.cryptoPoller;
         }
+        return null;
     }
 
     // Webhook Manager
@@ -164,12 +171,16 @@ class ShiftProcessor {
     deleteWebhook(secret: string): any {
         return _deleteWebhook(secret);
     }
+    getWebhookId(): string | null {
+        return _getWebhookId();
+    }
 
     private _lockNoWallet(functionName: string): void {
         if (!this.oneWalletSupport && this.MAIN_COIN === "no_wallet" && this.SECONDARY_COIN === "no_wallet") {
             throw new Error(`No wallet set, function ${functionName} unavailable. Set at leat one wallet to use.`)
 
         } else if (this.oneWalletSupport && this.MAIN_COIN === "no_wallet") {
+            // if (this.MAIN_COIN === "no_wallet") {
             throw new Error(`No wallet set, function ${functionName} unavailable. Set at leat one wallet to use.`)
         }
 
@@ -319,6 +330,11 @@ class ShiftProcessor {
 
         const settleCoinNetwork = this.helper.getCoinNetwork(settleData.coin, settleData.network);
 
+        // Error for same coin shift if oneWalletSupport is false
+        if (!this.oneWalletSupport && depositCoinNetwork === this.MAIN_COIN && this.SECONDARY_COIN === "no_wallet") {
+            throw new Error(`Cannot shift from same coin ${depositCoinNetwork} / ${this.helper.getCoinNetwork(this.WALLETS[this.MAIN_COIN].coin, this.WALLETS[this.MAIN_COIN].network)}`);
+        }
+
         let settleAmount: number;
         try {
             settleAmount = await this.calculateCryptoFromFiat(amountFiat, depositCoinNetwork, settleCoinNetwork);
@@ -409,8 +425,10 @@ class ShiftProcessor {
 
     }
 
-    // Shift function
 
+    // Shifts function
+
+    // Forge internal Shift for same coin payment
     forgeInternalShift(settleAmount: number, refundAddress: string | null = null, refundMemo: string | null = null): any {
         const now = new Date();
         const forgedShift = {
@@ -518,11 +536,6 @@ class ShiftProcessor {
             const depositCoinNetwork = this.helper.getCoinNetwork(depositCoin, depositNetwork);
             const data = await this.getSettlementData("200", depositCoinNetwork); // Used to get settle wallet
             let shiftData: VariableShiftData;
-
-            // Error for same coin shift if oneWalletSupport is false
-            if (!this.oneWalletSupport && depositCoinNetwork === this.MAIN_COIN && this.SECONDARY_COIN === "no_wallet") {
-                throw new Error(`Cannot shift from same coin ${depositCoinNetwork} / ${this.helper.getCoinNetwork(this.WALLETS[this.MAIN_COIN].coin, this.WALLETS[this.MAIN_COIN].network)}`);
-            }
 
             // Test if the shift is possible before processing
             await this.isShiftAvailable(depositCoin, depositNetwork, data.settleData.coin, data.settleData.network);
@@ -691,12 +704,6 @@ class ShiftProcessor {
             const data = await this.getSettlementData(amountFiat, depositCoinNetwork);
             let shiftData: FixedShiftData;
 
-
-            // Error for same coin shift if oneWalletSupport is false
-            if (!this.oneWalletSupport && depositCoinNetwork === this.MAIN_COIN && this.SECONDARY_COIN === "no_wallet") {
-                throw new Error(`Cannot shift from same coin ${depositCoinNetwork} / ${this.helper.getCoinNetwork(this.WALLETS[this.MAIN_COIN].coin, this.WALLETS[this.MAIN_COIN].network)}`);
-            }
-
             // If same coin shift and oneWalletSupport true
             if (this.oneWalletSupport && depositCoinNetwork === this.MAIN_COIN) {
                 // return forged shift data with this.MAIN_COIN.address as deposit
@@ -726,7 +733,6 @@ class ShiftProcessor {
             throw new Error(err.message || 'Failed to create fixed shift');
         }
     }
-
 
     // Create a fixed rate shift using an USD/fiat amount - Manual wallet setting
     async createFixedShiftFromUsd({
@@ -843,13 +849,40 @@ class ShiftProcessor {
     }
 
     generateNetworkExplorerLinks(data: any[]): any {
+        const blockchainUrlAliases: any = {
+            "celestia": {
+                address: "https://celenium.io/address/",
+                tx: "https://celenium.io/tx/"
+            },
+            "cosmo": {
+                address: "https://www.atomscan.com/accounts/",
+                tx: "https://www.atomscan.com/transactions/"
+            },
+            "cronos": {
+                address: "https://explorer.cronos.org/address/",
+                tx: "https://explorer.cronos.org/tx/"
+            },
+            "ronin": {
+                address: "https://app.roninchain.com/address/",
+                tx: "https://app.roninchain.com/tx/"
+            },
+        };
+
         // let networkLinks = {};
         let networkLinks: { [key: string]: string } = {};
 
         data.forEach(coin => {
-            coin.networks.forEach((network: any) => {
-                network = this.helper.adaptToExplorer(network);
-                const baseUrl = `https://3xpl.com/${network}/address/`;
+            coin.networks.forEach((network: string) => {
+                let baseUrl: any;
+                if(blockchainUrlAliases[network]){
+                    baseUrl = blockchainUrlAliases[network];
+                } else{
+                    network = this.helper.adaptToExplorer(network);
+                    baseUrl = {
+                        address: `https://3xpl.com/${network}/address/`,
+                        tx: `https://3xpl.com/${network}/tx/`,
+                    };
+                }
                 if (network && !this.networkLinks[network]) networkLinks[network] = baseUrl;
             });
         });
@@ -992,6 +1025,7 @@ class ShiftProcessor {
     }
 
 }
+
 
 // ESM
 export { ShiftProcessor as default }

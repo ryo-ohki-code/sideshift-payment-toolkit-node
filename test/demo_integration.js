@@ -14,6 +14,7 @@ app.set('view engine', 'pug');
 app.set('views', __dirname + '/views');
 
 app.use(express.static('public'));
+// app.set('trust proxy', 1);
 
 app.get('/', (req, res) => {
     res.redirect('selection');
@@ -81,14 +82,14 @@ const SECONDARY_WALLET = {
 };
 
 const MAIN_COIN = `${MAIN_WALLET.coin}-${MAIN_WALLET.network}`;
-// const SECONDARY_COIN = `${SECONDARY_WALLET.coin}-${SECONDARY_WALLET.network}`;
+const SECONDARY_COIN = `${SECONDARY_WALLET.coin}-${SECONDARY_WALLET.network}`;
 
 const WALLETS = {
     [MAIN_COIN]: MAIN_WALLET,
-    // [SECONDARY_COIN]: SECONDARY_WALLET
+    [SECONDARY_COIN]: SECONDARY_WALLET
 };
 
-const internalPrefix = 'internal10-';
+const internalPrefix = 'internal-';
 
 const SIDESHIFT_CONFIG = {
     secret: process.env.SIDESHIFT_SECRET, // "Your_SideShift_secret";
@@ -102,23 +103,47 @@ const verbose = SIDESHIFT_CONFIG.verbose;
 
 // Load the Shift Processor
 const ShiftProcessor = require('sideshift-api-payment-toolkit');
+// const ShiftProcessor = require('./dist/index.cjs');
 
 const shiftProcessor = new ShiftProcessor({
     wallets: WALLETS,
     sideshiftConfig: SIDESHIFT_CONFIG,
     currencySetting: CURRENCY_SETTING,
     oneWalletSupport: { // Optional
-        active: true, // Optional - default false
+        active: false, // Optional - default false
         internalPrefix: internalPrefix // Optional - Custom internal prefix for forged shift with oneWalletSupport
     }
 });
 
+
+// Reset/Cancel Crypto payment
+function cancelPayment(shiftId, invoiceId, status) {
+    if (fakeShopDataBase[invoiceId]) {
+        fakeShopDataBase[invoiceId].paymentMethod = "";
+        fakeShopDataBase[invoiceId].paymentStatus = status;
+        fakeShopDataBase[invoiceId].paymentData.crypto.settleAmount = "";
+        fakeShopDataBase[invoiceId].paymentData.crypto.payWith = "";
+        fakeShopDataBase[invoiceId].paymentData.crypto.isMemo = "";
+        fakeShopDataBase[invoiceId].paymentData.crypto.failedPayment.push({ type: "crypto", id: shiftId });
+        fakeShopDataBase[invoiceId].status = "waiting";
+    }
+}
+// Confirm/Success Crypto payment
+function confirmPayment(shiftId, invoiceId) {
+    if (fakeShopDataBase[invoiceId]) {
+        fakeShopDataBase[invoiceId].paymentData.crypto.paymentId = shiftId;
+        fakeShopDataBase[invoiceId].paymentStatus = "settled";
+        fakeShopDataBase[invoiceId].status = "confirmed";
+    }
+}
+
+
 // Optional - Polling System configuration, only if you want to use the Polling System
 const POLLING_CONFIG = {
     active: true, // Polling System active status - default false
-    intervalTimeout: 10000, // Optional - Interval ms between 2 API call - default 20000
-    cancelCryptoPayment: "cancelPayment", // Optional - Function method name to call on Cancel event - default 'cancelPayment'
-    successCryptoPayment: "confirmPayment" // Optional - Function method name to call on Confirmation event - default 'confirmPayment'
+    intervalTimeout: 5000, // Optional - Interval ms between 2 API call - default 20000
+    cancelFunction: cancelPayment, // Optional - Function method to call on Cancel event - default disabled
+    successFunction: confirmPayment // Optional - Function method to call on Confirmation event - default disabled
 };
 
 // Optional - Initiate Polling System
@@ -179,28 +204,6 @@ function createDemoCostumer(orderId, total, settleAmount, payWithCoin, memo = nu
     fakeShopDataBase[orderId].paymentData.crypto.paymentId = "";
 }
 
-// Reset/Cancel Crypto payment
-function cancelPayment(shiftId, invoiceId, status) {
-    if (fakeShopDataBase[invoiceId]) {
-        fakeShopDataBase[invoiceId].paymentMethod = "";
-        fakeShopDataBase[invoiceId].paymentStatus = status;
-        fakeShopDataBase[invoiceId].paymentData.crypto.settleAmount = "";
-        fakeShopDataBase[invoiceId].paymentData.crypto.payWith = "";
-        fakeShopDataBase[invoiceId].paymentData.crypto.isMemo = "";
-        fakeShopDataBase[invoiceId].paymentData.crypto.failedPayment.push({ type: "crypto", id: shiftId });
-        fakeShopDataBase[invoiceId].status = "waiting";
-    }
-}
-
-// Confirm/Success Crypto payment
-function confirmPayment(shiftId, invoiceId) {
-    if (fakeShopDataBase[invoiceId]) {
-        fakeShopDataBase[invoiceId].paymentData.crypto.paymentId = shiftId;
-        fakeShopDataBase[invoiceId].paymentStatus = "settled";
-        fakeShopDataBase[invoiceId].status = "confirmed";
-    }
-}
-
 
 
 //-----------------------------
@@ -214,6 +217,7 @@ function confirmPayment(shiftId, invoiceId) {
 function startWebhook() {
     try {
         shiftProcessor.setupSideShiftWebhook(WEBSITE_URL, process.env.SIDESHIFT_SECRET);
+        // Note: don't forget to save all your Webhook Id somewhere
     } catch (error) {
         console.log(error);
     }
@@ -229,6 +233,8 @@ function deleteWebhook() {
     }
 }
 // deleteWebhook();
+
+// console.log(shiftProcessor.getWebhookId());
 
 
 // General checkout function
@@ -256,9 +262,12 @@ async function generateCheckout({ settleCoin, settleNetwork, settleAddress, sett
 }
 
 async function webhookDataConfirmation(notification, invoice, wallet) {
-    const checkoutData = await shiftProcessor.sideshift.getCheckout(donation.id);
+    // const checkoutData = await shiftProcessor.sideshift.getCheckout(donation.id);
 
     if (!notification || !checkoutData || !invoice || !wallet) return false;
+
+    const shift = await shiftProcessor.sideshift.getShift(notification.payload.shiftId?.toString());
+
 
     const [invoiceCoin, invoiceNetwork] = JSON.parse(invoice.payWith).split('-');
 
@@ -270,27 +279,28 @@ async function webhookDataConfirmation(notification, invoice, wallet) {
         address: (data?.settleAddress && data.settleAddress.toLowerCase()) || (data?.address && data.address.toLowerCase()) || 'unknown'
     });
 
-    const checkout = getData(checkoutData);
+    // const checkout = getData(checkoutData);
+    const shiftData = getData(shift);
     const notificationData = getData(notification);
     const invoiceData = getData(invoice);
     const walletData = getData(wallet);
 
-    if (walletData.address !== checkout.address ||
-        checkout.address !== notificationData.address) {
+    if (walletData.address !== shiftData.address ||
+        shiftData.address !== notificationData.address) {
         return false;
     }
 
-    if (checkout.amount !== invoiceData.amount) {
+    if (shiftData.amount !== invoiceData.amount) {
         return false;
     }
 
-    if (checkout.coin !== notificationData.coin ||
+    if (shiftData.coin !== notificationData.coin ||
         notificationData.coin !== invoiceCoin ||
         invoiceCoin !== wallet.coin) {
         return false;
     }
 
-    if (checkout.network !== notificationData.network ||
+    if (shiftData.network !== notificationData.network ||
         notificationData.network !== invoiceNetwork ||
         invoiceNetwork !== walletData.network) {
         return false;
@@ -305,21 +315,58 @@ app.post('/api/webhooks/sideshift', (req, res) => {
         const notification = req.body;
         if (verbose) console.log('Received webhook notification:', notification);
 
-        const notificationId = notification.id;
+        const notificationId = notification.meta.hook.id;
+        const accountId = notification.meta.hook.accountId;
+        const targetUrl =  notification.meta.hook.targetUrl;
 
+        const orignialWebhookId = shiftProcessor.getWebhookId()
+
+        if(orignialWebhookId !== notificationId){
+            res.status(200).send('Webhook received');
+            if(verbose) console.error(`Wrong Webhook ID. Received: ${notificationId}`)
+            return;
+        }
+
+        if(accountId !== SIDESHIFT_CONFIG.id){
+            res.status(200).send('Webhook received');
+            if(verbose) console.error(`Wrong Account ID. Received: ${accountId}`)
+            return;
+        }
+
+        if(targetUrl !== WEBSITE_URL){
+            res.status(200).send('Webhook received');
+            if(verbose) console.error(`Wrong target URL. Received: ${targetUrl}`)
+            return;
+        }
+
+        const notificationStatus = notification.payload.status;
+        const checkoutId = notification.payload.checkoutId; // Impossible to get with available data unless scanning all checkout ids to find the shiftId inside order
+
+        // Check webhook status
+        const STATUSES = ['cancelled', 'success']; // 'waiting', 'pending', 'completed', 'settled',
+        if (!STATUSES.includes(notificationStatus)) {
+            return res.status(200).send('Webhook received with unknown status');
+        }
+
+        // Get the related order
         const invoiceId = Object.values(fakeShopDataBase).find(order =>
-            order.paymentData.crypto.paymentId === notificationId
+            order.paymentData.crypto.paymentId === checkoutId
         );
 
         if (!fakeShopDataBase[invoiceId]) return res.status(200).send('Webhook received');
 
-        if (notification.status === "settled" && fakeShopDataBase[invoiceId].paymentStatus !== "settled") {
+        // Check if already processed
+        if (notificationStatus === "success" && fakeShopDataBase[invoiceId].paymentStatus === "settled") {
+            return res.status(200).send('Already processed');
+        }
+
+        if (notificationStatus === "success" && fakeShopDataBase[invoiceId].paymentStatus !== "settled") {
             if (webhookDataConfirmation(notification, fakeShopDataBase[invoiceId], MAIN_WALLET)) {
                 confirmPayment(notification.id, invoiceId)
             }
         }
 
-        if (notification.status === "cancelled" && fakeShopDataBase[invoiceId].paymentStatus !== "cancelled by user") {
+        if (notificationStatus === "cancelled" && fakeShopDataBase[invoiceId].paymentStatus !== "cancelled by user") {
             cancelPayment(notification.id, invoiceId, "cancelled by user")
         }
 
@@ -328,7 +375,6 @@ app.post('/api/webhooks/sideshift', (req, res) => {
         // handle error
         res.status(200).send('Webhook received');
     }
-
 });
 
 
@@ -386,6 +432,7 @@ app.get("/checkout/:status/:orderId/:secret", rateLimiter, async (req, res) => {
             const successData = {
                 order: fakeShopDataBase[orderId]
             };
+            // TODO checkout do not have status... so need to check on the orders, to check the shift id, check all shiftIds if multiple...
             if (checkout.status === "settled") {
                 return res.render('cancel-success', { shift: checkout, success: successData });
             } else {
@@ -510,7 +557,7 @@ app.post("/paywall", paymentLimiter, async function (req, res) {
 // Payment creation
 // ----------------
 
-app.get("/selection", rateLimiter, function (req, res) {
+app.get("/selection", rateLimiter, async function (req, res) {
     try {
         // Test if settle Wallets are available on SideShift API
         const settleWalletStatus = shiftProcessor.isSettleCoinOnline();
@@ -599,7 +646,7 @@ app.post("/create-payment", paymentLimiter, async function (req, res) {
         
         // Activate Polling system
         const isInternal = isInternalId(shift.id); // You must use this with single wallet setting to detect 'forged internal shift'
-        cryptoPoller.addPayment({ shift, settleAddress: shift.settleAddress, settleAmount: shift.settleAmount, customId: id, isInternal: isInternal });
+        cryptoPoller.addPayment({ shift, settleAddress: shift.settleAddress, settleAmount: Number(shift.settleAmount), customId: id, isInternal: isInternal });
 
         res.redirect(`/payment-status/${shift.id}/${id}`);
     } catch (err) {
@@ -736,7 +783,7 @@ app.get("/payment-status/:id_shift/:id_invoice", rateLimiter, handleCryptoShift,
         }
     }
 
-    const depositLink = shiftProcessor.helper.getNetworkExplorer(shift.depositNetwork) + processedDepositAddress;
+    const depositLink = shiftProcessor.helper.getNetworkExplorer(shift.depositNetwork);
     if (req.invoice.paymentStatus === "Error_MaxRetryExceeded") return res.redirect(`/cancel/${shift.id}/${invoice.id}`);
 
     switch (shift.status) {
@@ -761,9 +808,17 @@ app.get("/success/:id_shift/:id_invoice", rateLimiter, handleCryptoShift, async 
             if (verbose) console.log("Shift not settled yet", req.shift.id, req.invoice.id);
             return res.redirect(`/payment-status/${req.shift.id}/${req.invoice.id}`);
         } else {
+            // Get the network explorer
+            const depositExplorer = await shiftProcessor.helper.getNetworkExplorer(req.shift.depositNetwork);
+            const settleExplorer = await shiftProcessor.helper.getNetworkExplorer(req.shift.settleNetwork);
+
             const successData = {
                 shift: req.shift,
-                order: req.invoice
+                order: req.invoice,
+                links: {
+                    deposit: depositExplorer,
+                    settle: settleExplorer
+                }
             };
             return res.render('cancel-success', { success: successData });
         }
@@ -943,7 +998,7 @@ shiftProcessor.updateCoinsList(ICON_PATH).then((response) => {
 
     app.listen(port, () => {
         console.log(`HTTP Server running at http://localhost:${port}/`);
-    });
+    });    
 
     setInterval(async () => {
         const result = await shiftProcessor.updateCoinsList(ICON_PATH);

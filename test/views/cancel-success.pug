@@ -33,6 +33,22 @@ html
 
 				p Payment #{success.shift.id} is confirmed.
 				p You payed #{success.shift.depositAmount} #{success.shift.depositCoin} #{success.shift.depositNetwork} for #{success.order.total} #{CURRENCY_SETTING.currency}
+				p Tx Hashes: 
+					br
+					| Deposit: 
+					a(href=success.links.deposit.tx+success.shift.depositHash, target="_blank") #{success.shift.depositHash} 
+					br
+					| Address: 
+					a(href=success.links.deposit.address+success.shift.depositAddress, target="_blank") #{success.shift.depositAddress}
+					br
+					br
+					| Settle: 
+					a(href=success.links.settle.tx+success.shift.settleHash, target="_blank") #{success.shift.settleHash} 
+					br
+					| Address: 
+					a(href=success.links.settle.address+success.shift.settleAddress, target="_blank") #{success.shift.settleAddress}
+
+
 				p Your order #{success.order.id} is completed.
 
 				p Go to you account page

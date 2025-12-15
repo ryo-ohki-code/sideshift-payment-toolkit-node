@@ -1,13 +1,13 @@
 // Interfaces
-import { CreateHookResponse, DeleteHookResponse, WebhookManager } from './../types/webhook'
+import { CreateHookData, DeleteHookResponse, WebhookDataItem } from './../types/webhook'
 
+// Webhook Manager
 import webhookManager from './webhook-manager';
 
-
-async function createNewWebhook(WEBSITE_URL: string, SIDESHIFT_SECRET: string): Promise<CreateHookResponse> {
-    const url = 'https://sideshift.ai/graphql';
-    const secretKey = SIDESHIFT_SECRET;
-    const targetUrl = `${WEBSITE_URL}/api/webhooks/sideshift`;
+async function createNewWebhook(WEBSITE_URL: string, SIDESHIFT_SECRET: string): Promise<CreateHookData> {
+    const url: string = 'https://sideshift.ai/graphql';
+    const secretKey: string = SIDESHIFT_SECRET;
+    const targetUrl: string = `${WEBSITE_URL}/api/webhooks/sideshift`;
 
     const payload = {
         query: `mutation { createHook(targetUrl: "${targetUrl}") { id createdAt updatedAt targetUrl enabled } }`
@@ -28,23 +28,23 @@ async function createNewWebhook(WEBSITE_URL: string, SIDESHIFT_SECRET: string): 
         }
 
         const result = await response.json();
-        console.log('Webhook connection success:', result);
+        console.log('[WebhookManager] Webhook connection success:', result);
 
-        return result as CreateHookResponse;
-        // return result;
+        return result as CreateHookData;
     } catch (error) {
-        console.error('Error:', error);
+        console.error('[WebhookManager] Error:', error);
         throw error;
     }
 }
 
 export async function _deleteWebhook(SIDESHIFT_SECRET: string): Promise<DeleteHookResponse> {
-    const url = 'https://sideshift.ai/graphql';
-    const secretKey = SIDESHIFT_SECRET;
-    const hook = webhookManager.getWebhookData();
+    const url: string = 'https://sideshift.ai/graphql';
+    const secretKey: string = SIDESHIFT_SECRET;
+    const hook: WebhookDataItem | null = webhookManager.getWebhookData();
     let hookId: string;
+
     if (hook) {
-        hookId = hook.id;
+        hookId = hook?.id;
         const payload = {
             query: `mutation { deleteHook(id: "${hookId}") }`
         };
@@ -67,26 +67,23 @@ export async function _deleteWebhook(SIDESHIFT_SECRET: string): Promise<DeleteHo
 
             webhookManager.deleteData();
             
-            console.log('Webhook connection successfully deleted:', result);
+            console.log('[WebhookManager] Webhook connection successfully deleted:', result);
             return result as DeleteHookResponse;
-            // return result;
         } catch (error) {
-            console.error('Error:', error);
+            console.error('[WebhookManager] Error:', error);
             throw error;
         }
     } else {
         return { deleteHook: false };
     }
-
-
 }
 
-export async function _setupSideShiftWebhook(WEBSITE_URL: string, SIDESHIFT_SECRET: string): Promise<CreateHookResponse> {
+export async function _setupSideShiftWebhook(WEBSITE_URL: string, SIDESHIFT_SECRET: string): Promise<CreateHookData> {
     if (webhookManager.isInitialized()) {
-        console.log('Webhook already initialized');
-        const existingData = webhookManager.getWebhookData();
+        console.log('[WebhookManager] Webhook already initialized');
+        const existingData: WebhookDataItem |null = webhookManager.getWebhookData();
         if (existingData) {
-            console.log('Existing webhook data:', existingData);
+            console.log('[WebhookManager] Existing webhook data:', existingData);
             return {
                 createHook: existingData
             };
@@ -95,10 +92,19 @@ export async function _setupSideShiftWebhook(WEBSITE_URL: string, SIDESHIFT_SECR
     }
 
     // Create new webhook
-    const webhookData = await createNewWebhook(WEBSITE_URL, SIDESHIFT_SECRET);
+    const webhookData: CreateHookData = await createNewWebhook(WEBSITE_URL, SIDESHIFT_SECRET);
 
     // Save the webhook
     webhookManager.saveData(webhookData);
 
     return webhookData;
+}
+
+export function _getWebhookId(): string | null{
+    const webhookData: WebhookDataItem |null = webhookManager.getWebhookData();
+    if(!webhookData){
+        return null
+    }else{
+        return webhookData.id;
+    }
 }

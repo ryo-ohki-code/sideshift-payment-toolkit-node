@@ -4,6 +4,7 @@ export interface IPInfo {
     address: string | null;
 };
 
+
 interface TokenDetails {
     network: NetworkDetails;
 }

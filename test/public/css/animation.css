@@ -1,3 +1,14 @@
+:root {
+  --slide-distance: 200px;
+  --slide-animation-duration: 2s;
+  --ease-function: ease-in-out;
+}
+@media (max-width: 1050px) {
+  :root {
+    --slide-distance: 70px;
+  }
+}
+
 .rotate-animation {
   animation: spin 2s linear infinite;
 }
@@ -11,12 +22,46 @@
   animation: flip 9s ease-in-out infinite;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-/*  animation: flip 9s cubic-bezier(0.42, 0, 0.58, 1) infinite;*/
 }
 @keyframes flip {
   0% { transform: scaleX(1); }
-  25% { transform: scaleX(-1); }/* Flip */
+  25% { transform: scaleX(-1); }
   50% { transform: scaleX(1); }
   75% { transform: scaleX(-1); } 
-  100% { transform: scaleX(1); }/* Return to normal */
+  100% { transform: scaleX(1); }
 }
+
+@keyframes reverseFlip {
+  0% { transform: scaleX(1) rotate(0deg); }
+  25% { transform: scaleX(-1) rotate(0deg); }
+  50% { transform: scaleX(1) rotate(180deg); }
+  75% { transform: scaleX(-1) rotate(180deg); }
+  100% { transform: scaleX(1) rotate(360deg); }
+}
+
+.slide-fade {
+  animation: slideFade var(--slide-animation-duration) var(--ease-function) infinite;
+}
+
+@keyframes slideFade {
+  0% {
+    opacity: 0;
+    transform: translateX(calc(var(--slide-distance) * -1)) scaleX(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  50% {
+    transform: scaleX(1);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--slide-distance)) scaleX(0);
+  }
+}
+

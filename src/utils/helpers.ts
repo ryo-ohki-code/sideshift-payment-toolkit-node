@@ -257,11 +257,15 @@ export class Helpers {
         return isValid;
     }
 
-    // TODO Test if a coin-network use memo
+    // Test if a coin-network use memo
     isCoinMemo(coinNetwork: string): boolean {
-        // if (!this.availableCoins) throw new Error('Coins list not available, use updateCoinsList() to load the list')
-        // return isMemo;
-        return false;
+        if (!this.availableCoins) throw new Error('Coins list not available, use updateCoinsList() to load the list')
+
+        const [coin, network] = coinNetwork.split('-');
+        const element = this._findSpecificCoin(coin, network);
+        const hasNetworksWithMemo = element.networksWithMemo && element.networksWithMemo.length > 0;
+
+        return hasNetworksWithMemo;
     }
 
     // test if a coin or token
@@ -432,7 +436,7 @@ export class Helpers {
             avax: string;
             bitcoincash: string;
             bsc: string;
-            dogecoin: string;
+            doge: string;
             seievm: string;
             liquid: string;
             xec: string;
@@ -443,7 +447,7 @@ export class Helpers {
             "avax": "avalanche",
             "bitcoincash": "bitcoin-cash",
             "bsc": "bnb",
-            "dogecoin": "doge",
+            "doge": "dogecoin",
             "seievm": "sei-evm",
             "liquid": "liquid-network",
             "xec": "zcash",
@@ -470,8 +474,6 @@ export class Helpers {
         });
         return sortedObj;
     };
-
-
 }
 
 export { Helpers as default }

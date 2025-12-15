@@ -8,7 +8,7 @@ export default [
     output: {
       file: 'dist/index.js',
       format: 'es',
-      sourcemap: true
+      sourcemap: false
     },
     external: ['sideshift-api'],
     plugins: [
@@ -24,7 +24,7 @@ export default [
     output: {
       file: 'dist/index.cjs',
       format: 'cjs',
-      sourcemap: true
+      sourcemap: false
     },
     external: ['sideshift-api'],
     plugins: [

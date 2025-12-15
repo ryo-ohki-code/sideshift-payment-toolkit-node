@@ -28,7 +28,6 @@ a:hover {
 div {
   margin-left: auto;
   margin-right: auto;
-  /* padding: 20px; */
 }
 
 
@@ -112,14 +111,6 @@ tr:last-child td {
   border: 1px solid beige;
 }
 
-/* .main-wrapper {
-  position: absolute;
-  top: 45%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-} */
-
 .content-wrapper {
   display: flex;
   justify-content: space-between;
@@ -137,14 +128,12 @@ tr:last-child td {
 
 .table-container {
   flex: 1 1 auto;
-  /* Allow flexible sizing */
   min-width: 0;
 }
 
 .content-wrapper table {
   width: 100%;
   table-layout: auto;
-  /* display: block; */
 }
 
 
@@ -167,6 +156,20 @@ tr:last-child td {
   min-width: 0;
 }
 
+th.wallet img {
+  width: 30px;
+  vertical-align: middle;
+  transition: filter 0.3s ease;
+}
+
+th.wallet img:hover {
+  filter: invert(100%);
+}
+
+th.wallet:inverthover {
+  background-color: #8b0606;
+}
+
 
 .content-wrapper td {
   width: 900px;
@@ -180,7 +183,6 @@ tr:last-child td {
 .left-section {
   flex: 1;
   min-width: 300px;
-  /* Prevent shrinking too much */
   margin-right: 20px;
 }
 
@@ -212,15 +214,26 @@ tr:last-child td {
   width: 100%;
 }
 
-.explorer-link {
-  margin-left: 8px;
+
+.status-container {
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1;
 }
 
+.status-container.fade-out {
+    opacity: 0;
+}
+
+
+/* .explorer-link {
+} */
 
 button.copy-btn {
   background-color: #f0f0f094;
   border-radius: 8px;
   color: #333;
+  margin-left: 5px;
+  transition: all 0.3s ease;
 }
 
 button.copy-btn:hover {
@@ -229,8 +242,13 @@ button.copy-btn:hover {
 
 .copy-btn img {
   vertical-align: middle;
+  transition: filter 0.3s ease;
+
 }
 
+.copy-btn:hover img {
+  filter: invert(100%);
+}
 
 .wallet-info {
   margin: 5px 0;
@@ -253,6 +271,7 @@ button.copy-btn:hover {
   display: flex;
   gap: 10px;
   margin-top: 15px;
+  float: right;
 }
 
 button {
@@ -275,12 +294,14 @@ button {
   cursor: pointer;
   background: linear-gradient(45deg, rgb(224, 180, 58), #eb8109);
   transition: all 0.4s ease;
+  padding: 12px 18px;
+  box-shadow: 1px 2px 7px rgba(0, 0, 0, 0.4);
 }
 
 .metamask-btn:hover {
   background-position: 100% 50%;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(101, 78, 163, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 2px 4px 16px rgba(101, 78, 163, 0.5);
   transition: all 0.4s ease;
 }
 
@@ -365,6 +386,12 @@ button {
 
   }
 
+  .button-group {
+    margin-top: 20px;
+    flex-direction: column;
+    gap: 5px;
+    float: none;
+  }
 }
 
 
@@ -380,6 +407,7 @@ button {
   .button-group {
     flex-direction: column;
     gap: 5px;
+    float: none;
   }
 
   button {
@@ -579,6 +607,10 @@ canvas {
     padding: 14px 20px;
     font-size: 14px;
   }
+
+  .left-section {
+    margin-right: 0px;
+  }
 }
 
 
@@ -591,6 +623,13 @@ canvas {
   .form-checkout {
     padding: 15px;
   }
+
+  .left-section {
+    flex: 1;
+    min-width: 300px;
+  }
+
+
 
   th,
   td {

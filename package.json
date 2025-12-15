@@ -1,6 +1,6 @@
 {
   "name": "sideshift-api-payment-toolkit",
-  "version": "1.0.0-beta3",
+  "version": "1.0.0-beta4",
   "description": "A TypeScript library leveraging 'sideshift-api' to simplify fiat-to-crypto and crypto-to-crypto payment integration for developers, with comprehensive helpers and validation functions",
   "main": "dist/index.cjs",
   "module": "dist/index.js",

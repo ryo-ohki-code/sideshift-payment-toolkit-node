@@ -17,33 +17,37 @@ if(coinsDepositList)
 
     div#coin-modal.modal-overlay.hidden
         div.modal-content
-            div.modal-header
-                h2 Select Coin
-                p.close-btn &times;
+        
+            div.modal-header(style="margin-bottom:0;")
+                h2(style="margin:0;padding:0") Select Coin
+                p(style="margin:0;padding:0").close-btn &times;
 
 
-            div.filter-controls
+            div.search-controls(style="margin-top:0;")
+                div.search-input
+                    input#search-input-modal(type="text", placeholder="Search coins or networks...")
+
+
+            //- p(onclick="toggleVisibility('SEARCH_OPTIONS')").options Search options
+            div#SEARCH_OPTIONS(style="margin:0; padding:0;")
+                div.modal-radio
+                    label Coin
+                        br
+                        input(type="radio", name="search-type-modal", value="coin", checked)
+                    label Network
+                        br
+                        input(type="radio", name="search-type-modal", value="network")
+                    label All
+                        br
+                        input(type="radio", name="search-type-modal", value="all")
+
+
+            div.filter-controls(style="margin-bottom:40px;")
                 label(style="color:grey;") Select Network
                 select.network-select#network-filter-modal
                     option(value="all") All Networks
                     each network in networks
                         option(value=network)= network
-
-
-            div.search-controls
-                div.search-input
-                    input#search-input-modal(type="text", placeholder="Search coins or networks...")
-
-
-            p(onclick="toggleVisibility('SEARCH_OPTIONS')").options Search options
-            div#SEARCH_OPTIONS.hidden(style="margin:0; padding:0;")
-                div.modal-radio
-                    label Coin
-                        input(type="radio", name="search-type-modal", value="coin", checked)
-                    label Network
-                        input(type="radio", name="search-type-modal", value="network")
-                    label All
-                        input(type="radio", name="search-type-modal", value="all")
 
 
             div.coin-list

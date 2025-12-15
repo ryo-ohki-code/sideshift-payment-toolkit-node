@@ -72,7 +72,8 @@ It supports:
 - Full API endpoint access
 - And more...
 
-
+<iframe src="https://streamable.com/e/j8u6cz" width="640" height="480" frameborder="0" allowfullscreen></iframe>
+<iframe width="680" height="383" src="https://www.youtube.com/embed/quQSVykAD5o" title="Bhakti" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ### Integration Methods
 
 #### Custom Integration
@@ -295,11 +296,18 @@ const shiftProcessor = new ShiftProcessor({
 Important: Only custom integration requires the polling system. Do not use for checkout integration.
 
 ```javascript
+function cancelCryptoPayment(shiftId, invoiceId, status){
+  // Code here
+}
+function confirmCryptoPayment(shiftId, invoiceId){
+  // Code here
+}
+
 const POLLING_CONFIG = {
         active: true, // Polling System active status - default false
         intervalTimeout: 10000, // Interval ms between 2 API call - default 20000
-        resetCryptoPayment: "cancelCryptoPayment", // Failure callbacks function method name
-        confirmCryptoPayment: "confirmCryptoPayment" // Success callbacks function method name
+        cancelFunction: cancelCryptoPayment, // Failure callbacks function
+        successFunction: confirmCryptoPayment // Success callbacks function
 };
 
 // Initiate Polling System
@@ -332,7 +340,7 @@ await cryptoPoller.stopPollingForShift(shiftId);
 ### Webhook Manager (Checkout Integration Only)
 
 ```javascript
-// Setup the webhook (this will run it once and store data into `webhook-status.` to avoid setting multiple at server restart)
+// Setup the webhook (this will run it once and store data into `webhook-status.json` to avoid setting multiple at server restart)
 function startWebhook() {
     try {
         shiftProcessor.setupSideShiftWebhook(WEBSITE_URL, process.env.SIDESHIFT_SECRET);
@@ -350,10 +358,11 @@ function deleteWebhook() {
         console.log(error);
     }
 }
-// deleteWebhook();
+deleteWebhook();
+
+// To get the webhook ID
+const webhookId = shiftProcessor.getWebhookId();
 ```
-
-
 
 ### Initialization
 To work, the module needs access to the SideShift coins list, which must be loaded at server start.
@@ -918,6 +927,16 @@ Generate explorer link for a given network (e.g., Ethereum).
 ```
 https://3xpl.com/{network}/address/
 ```
+
+I used 3xpl website witch support lot of networks: bitcoin, ethereum, litcoin, arbitrum, avax, bitcoincash, bsc, dogecoin, seievm, liquid, xec, zksyncera, ripple, ...
+
+
+**Important note:** You must set up specific logic when using `getNetworkExplorer` because SideShift supports multiple blockchains, making it difficult to find a single website setup without paid API access to block explorer services. To keep this free, you need to use custom settings. Alternatively, you can use your own data provider. URLs configuration is located in `generateNetworkExplorerLinks`.
+
+Inside helper.ts you will also find `blockchainAliases` that needs update depending on you needs.
+
+I will add more when I have time to look at this, but for the moment this do not have full support for all SideShift coins.
+ 
 
 
 
