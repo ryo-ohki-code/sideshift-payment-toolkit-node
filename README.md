@@ -12,7 +12,7 @@ This library handles both integration methods:
 
 Note:
 
-**SideShift Pay Integration Status**: This integration is incomplete and requires verification before use. Currently, the webhook payload is missing critical data (e.g., checkoutId), which is essential for retrieving order details server-side.
+**SideShift Pay Integration Status**: ~~This integration is incomplete and requires verification before use. Currently, the webhook payload is missing critical data (e.g., checkoutId), which is essential for retrieving order details server-side.~~ Sideshift updated the chechout API, it now returns the `checkoutId`, I will review the code very soon to ensure everything works properly with Checkout Integration and remove this message once done.
 
 **Custom Integration**: Fully functional and working as intended. No issues reported.
 
